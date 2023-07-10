@@ -1,3 +1,15 @@
+# Jenkins Setup
+
+## First Launch
+
+1. Open the file ./jenkins/volume-data/secrets/initialAdminPassword
+2. Copy the password
+3. Launch http://localhost:7777/login
+4. You will be sent to `Getting Start` > `Unlock Jenkins screen`
+5. Enter the copied key as Administrator password
+6. Follow the steps to setup jenkins
+
+> If plugins fail to install, then remove ethernet cable and try connecting to the internet through WiFi network.
 
 # Test
 

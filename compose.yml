@@ -7,10 +7,10 @@ services:
         context: ./jenkins
         dockerfile: Dockerfile
     volumes:
-      - jenkins-volume:/var/jenkins_home
+      - jenkins-volume:/var/jenkins_home:rw
     ports:
-      - "8888:8080"
-      - "50000:50000"
+      - "7777:8080"
+      - "60000:50000"
     networks:
       - devops-network
 
@@ -22,12 +22,12 @@ services:
         context: ./ansible
         dockerfile: Dockerfile
     volumes:
-      - ansible-volume:/ansible
+      - ansible-volume:/ansible:rw
       - ./ansible/test:/test
     networks:
       - devops-network
     ports:
-      - "8022:22"
+      - "7022:22"
     command: /bin/sh -c "while sleep 1000; do :; done"
 
 
@@ -57,7 +57,7 @@ services:
       - MYSQL_ROOT_PASSWORD=admin123
 
     volumes:
-      - db_data:/var/lib/mysql
+      - reviewboard-database-volume:/var/lib/mysql:rw
 
     restart: 'on-failure'
 
@@ -68,7 +68,7 @@ services:
   #
   # In production, this should be shared across all Review Board instances,
   # and should be configured with at least 2GB of RAM.
-  memcached:
+  reviewboard-memcached:
     container_name: "devops-rb-memcached"
     image: memcached:alpine
     restart: 'on-failure'
@@ -92,7 +92,7 @@ services:
     image: beanbag/reviewboard:6.0b1
     depends_on:
       - db
-      - memcached
+      - reviewboard-memcached
     environment:
       - DATABASE_TYPE=mysql
 
@@ -113,7 +113,7 @@ services:
 
     volumes:
       - reviewboard-nginx-shared-volume:/site
-      - reviewboard-volume:/var/www/reviewboard/data
+      - reviewboard-volume:/var/www/reviewboard/data:rw
 
   # The frontend nginx web server.
   #
@@ -138,7 +138,7 @@ services:
       - NGINX_PORT=80
 
     ports:
-      - 8889:80
+      - 7779:80
 
     volumes:
       - reviewboard-nginx-shared-volume:/var/www/reviewboard
@@ -146,17 +146,17 @@ services:
 
 
 volumes:
-  db_data:
+  reviewboard-database-volume:
   reviewboard-nginx-shared-volume:
   jenkins-volume:
     driver: local
-    driver_opts: { o: bind, type: none, device: ./jenkins }
+    driver_opts: { o: bind, type: none, device: ./jenkins/volume-data }
   reviewboard-volume:
     driver: local
-    driver_opts: { o: bind, type: none, device: ./reviewboard }
+    driver_opts: { o: bind, type: none, device: ./reviewboard/volume-data }
   ansible-volume:
     driver: local
-    driver_opts: { o: bind, type: none, device: ./ansible }
+    driver_opts: { o: bind, type: none, device: ./ansible/volume-data }
 
 
 networks:
