@@ -37,7 +37,7 @@ services:
   #
   # In production, this should be shared across all Review Board instances.
   db:
-    container_name: "devops-rb-mysql"
+    container_name: "devops-reviewboard-database"
     image: mysql:8
     environment:
       # The name of the MySQL database storing Review Board content.
@@ -51,6 +51,9 @@ services:
       # CHANGEME: Use a strong password!
       - MYSQL_PASSWORD=reviewboard123
 
+      # - MYSQL_PORT=9999
+      # - MYSQL_HOST=db
+
       # The root MySQL password.
       #
       # CHANGEME: Use a strong password!
@@ -60,6 +63,8 @@ services:
       - reviewboard-database-volume:/var/lib/mysql:rw
 
     restart: 'on-failure'
+    networks:
+      - devops-network
 
 
   # The backend memory caching server.
@@ -68,8 +73,8 @@ services:
   #
   # In production, this should be shared across all Review Board instances,
   # and should be configured with at least 2GB of RAM.
-  reviewboard-memcached:
-    container_name: "devops-rb-memcached"
+  memcached:
+    container_name: "devops-reviewboard-cache"
     image: memcached:alpine
     restart: 'on-failure'
 
@@ -81,6 +86,8 @@ services:
       # CHANGEME: Set this to a suitable amount for your server. We recommend
       #           at least 2GB in production (2048).
       - -m 128
+    networks:
+      - devops-network
 
 
   # The backend Review Board server.
@@ -88,13 +95,18 @@ services:
   # This should not be accessed directly. Instead, please access the frontend
   # nginx server.
   reviewboard:
-    container_name: "devops-rb"
+    container_name: "devops-reviewboard"
     image: beanbag/reviewboard:6.0b1
     depends_on:
       - db
-      - reviewboard-memcached
+      - memcached
     environment:
       - DATABASE_TYPE=mysql
+      # - DATABASE_NAME=reviewboard
+      # - DATABASE_USER=root
+      # - DATABASE_PASSWORD=password
+      # - DATABASE_HOST=db
+      # - DATABASE_PORT=9999
 
       # The name of your company.
       #
@@ -112,8 +124,9 @@ services:
       - DOMAIN=localhost
 
     volumes:
-      - reviewboard-nginx-shared-volume:/site
-      - reviewboard-volume:/var/www/reviewboard/data:rw
+      - reviewboard-site-volume:/site
+    networks:
+      - devops-network
 
   # The frontend nginx web server.
   #
@@ -121,8 +134,8 @@ services:
   # all other requests to the Review Board backend server.
   #
   # This is the server you will access for Review Board.
-  nginx:
-    container_name: "devops-rb-nginx"
+  reviewboard-frontend-server:
+    container_name: "devops-reviewboard-frontend-server"
     image: nginx:alpine
     restart: always
     depends_on:
@@ -138,26 +151,27 @@ services:
       - NGINX_PORT=80
 
     ports:
-      - 7779:80
+      - 8889:80
 
     volumes:
-      - reviewboard-nginx-shared-volume:/var/www/reviewboard
-      - ./nginx_templates:/etc/nginx/templates
-
+      - reviewboard-site-volume:/var/www/reviewboard
+      - ./reviewboard/nginx/templates:/etc/nginx/templates
+    networks:
+      - devops-network
 
 volumes:
-  reviewboard-database-volume:
-  reviewboard-nginx-shared-volume:
   jenkins-volume:
     driver: local
     driver_opts: { o: bind, type: none, device: ./jenkins/volume-data }
-  reviewboard-volume:
+  reviewboard-database-volume:
     driver: local
     driver_opts: { o: bind, type: none, device: ./reviewboard/volume-data }
+  reviewboard-site-volume:
+    driver: local
+    driver_opts: { o: bind, type: none, device: ./reviewboard/site }
   ansible-volume:
     driver: local
     driver_opts: { o: bind, type: none, device: ./ansible/volume-data }
-
 
 networks:
   devops-network:
