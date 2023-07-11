@@ -10,26 +10,7 @@ To create a Jenkins task that runs an ansible-playbook command inside the Ansibl
 
 3. In the configuration of the pipeline job, scroll down to the "Pipeline" section and select the "Pipeline script" option. You can then enter the pipeline script directly into the text area.
 
-4. Use the following pipeline script as an example to run the ansible-playbook command inside the Ansible container:
-
-    ```
-    pipeline {
-        agent any
-
-        stages {
-            stage('Run Ansible Playbook') {
-                steps {
-                    script {
-                        // SSH into the Ansible container and run ansible-playbook command
-                        sh """
-                            sshpass -p "changeme"  ssh admin@ansible ansible-playbook -i /test/hosts /test/hello-world.yml
-                        """
-                    }
-                }
-            }
-        }
-    }
-    ```
+4. Copy and paste `../scripts/ssh-ansbile-test/ssh-with-credentials.groovy` file content to run the ansible-playbook command inside the Ansible container.
 
   > Make sure to replace `/test/hosts` with the appropriate path to your Ansible inventory file and playbook.yml with the path to your Ansible playbook.
 
@@ -72,28 +53,7 @@ To configure the password outside of the Jenkins pipeline script, you can utiliz
 
 11. In the configuration of the pipeline job, scroll down to the "Pipeline" section and select the "Pipeline script" option. You can then enter the pipeline script directly into the text area.
 
-12. Use the following pipeline script as an example to run the ansible-playbook command inside the Ansible container:
-
-    ```
-    pipeline {
-        agent any
-
-        stages {
-            stage('Run Ansible Playbook') {
-                steps {
-                    script {
-                        // SSH into the Ansible container and run ansible-playbook command
-                        withCredentials([usernamePassword(credentialsId: 'ansible-admin-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                            sh """
-                                sshpass -p "${PASSWORD}" ssh "${USERNAME}@ansible" ansible-playbook -i /test/hosts /test/hello-world.yml
-                            """
-                        }
-                    }
-                }
-            }
-        }
-    }
-    ```
+12. Copy and paste `../scripts/ssh-ansbile-test/ssh-without-credentials.groovy` file content to run the ansible-playbook command without credentials inside the Ansible container.
 
   > Make sure to replace `/test/hosts` with the appropriate path to your Ansible inventory file and playbook.yml with the path to your Ansible playbook.
 
