@@ -2,7 +2,6 @@ version: '3.7'
 services:
   jenkins:
     container_name: "devops-jenkins"
-    # image: jenkins/jenkins:lts
     build:
         context: ./jenkins
         dockerfile: Dockerfile
@@ -15,9 +14,7 @@ services:
       - jenkins-volume:/var/jenkins_home:rw
 
   ansible:
-    # image: ansible/ansible:ubuntu1404
     container_name: "devops-ansible"
-    # network_mode: host
     build:
         context: ./ansible
         dockerfile: Dockerfile
@@ -36,12 +33,16 @@ services:
   # This is accessed directly by Review Board.
   #
   # In production, this should be shared across all Review Board instances.
-  db:
+  reviewboard-database:
     container_name: "devops-reviewboard-database"
-    image: mysql:8
+    image: mysql:8.0.33-debian
     restart: 'on-failure'
     networks:
       - devops-network
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
     environment:
       # The name of the MySQL database storing Review Board content.
       - MYSQL_DATABASE=reviewboard
@@ -53,9 +54,6 @@ services:
       #
       # CHANGEME: Use a strong password!
       - MYSQL_PASSWORD=reviewboard123
-
-      # - MYSQL_PORT=9999
-      # - MYSQL_HOST=db
 
       # The root MySQL password.
       #
@@ -96,17 +94,15 @@ services:
     container_name: "devops-reviewboard"
     image: beanbag/reviewboard:6.0b1
     depends_on:
-      - db
+      - reviewboard-database
       - reviewboard-cache
     networks:
       - devops-network
     environment:
+      - MEMCACHED_SERVER=reviewboard-cache
       - DATABASE_TYPE=mysql
+      - DATABASE_SERVER=reviewboard-database
       # - DATABASE_NAME=reviewboard
-      # - DATABASE_USER=root
-      # - DATABASE_PASSWORD=password
-      # - DATABASE_HOST=db
-      # - DATABASE_PORT=9999
 
       # The name of your company.
       #
@@ -125,9 +121,6 @@ services:
 
     volumes:
       - reviewboard-site-volume:/site
-      - ./reviewboard/config/copy-config.sh:/usr/local/bin/copy-config.sh
-      - ./reviewboard/config/settings_local.py:/usr/src/reviewboard/settings_local.py
-    command: ["/usr/local/bin/copy-config.sh"]
 
   # The frontend nginx web server.
   #
@@ -166,8 +159,6 @@ volumes:
     driver: local
     driver_opts: { o: bind, type: none, device: ./reviewboard/volume-data }
   reviewboard-site-volume:
-    driver: local
-    driver_opts: { o: bind, type: none, device: ./reviewboard/site }
   ansible-volume:
     driver: local
     driver_opts: { o: bind, type: none, device: ./ansible/volume-data }
