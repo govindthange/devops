@@ -72,7 +72,7 @@ services:
   #
   # In production, this should be shared across all Review Board instances,
   # and should be configured with at least 2GB of RAM.
-  memcached:
+  reviewboard-cache:
     container_name: "devops-reviewboard-cache"
     image: memcached:alpine
     restart: 'on-failure'
@@ -97,7 +97,7 @@ services:
     image: beanbag/reviewboard:6.0b1
     depends_on:
       - db
-      - memcached
+      - reviewboard-cache
     networks:
       - devops-network
     environment:

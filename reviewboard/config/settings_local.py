@@ -18,7 +18,7 @@ DATABASES = {
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
-        "LOCATION": "memcached:11211"
+        "LOCATION": "reviewboard-cache:11211"
     }
 }
 
