@@ -58,6 +58,9 @@ To configure the password outside of the Jenkins pipeline script, you can utiliz
 7. Choose the appropriate credential type based on your needs. For storing a password, you can use "Username with password" or "Secret text".
 
     - "Username with password": Use this type if you want to store the username and password together. Enter a unique ID, specify the username and password, and provide an optional description.
+        - Enter `Username` as `admin`
+        - Enter `Password` as `changeme`
+        - Enter `ID` as `ansible-admin-credentials`
 
     - "Secret text": Use this type if you only want to store the password without a username. Enter a unique ID, specify the password, and provide an optional description.
 

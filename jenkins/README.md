@@ -1,6 +1,6 @@
 # Jenkins Setup
 
-## First Launch
+## Step 1. Setup admin credentials (first launch)
 
 1. Open the file ./jenkins/volume-data/secrets/initialAdminPassword
 2. Copy the password
@@ -11,7 +11,163 @@
 
 > If plugins fail to install, then remove ethernet cable and try connecting to the internet through WiFi network.
 
-# Test
+## Step 2. Setup ansible container as SSH server
+
+1. Connect local terminal to ansible container
+
+    Run `docker exec -it devops-ansible /bin/bash`
+
+    ```
+    govind@thinkpad:~$ docker exec -it devops-ansible /bin/bash
+    root@721d909272b8:/# whoami
+    root
+    ```
+
+2. Run `ssh-copy-id` command to send the keys to target machine. **Note that you need to perform this once for each user.**
+
+    ```
+    root@721d909272b8:/# ssh-copy-id govind@thinkpad
+    /usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/root/.ssh/id_rsa.pub"
+    The authenticity of host 'thinkpad (192.168.0.175)' can't be established.
+    ED25519 key fingerprint is SHA256:v/PGtNagh7/IkR5na8WOx7ern+NWdWZYeQoo+gGbwxk.
+    This key is not known by any other names.
+    Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+    /usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+
+    /usr/bin/ssh-copy-id: WARNING: All keys were skipped because they already exist on the remote system.
+        (if you think this is a mistake, you may want to use -f option)
+    ```
+
+3. Run a ping test to ansible controlled target machines
+    ```
+    root@721d909272b8:/# ansible -i /test/hosts -m ping target1
+    target1 | SUCCESS => {
+        "ansible_facts": {
+            "discovered_interpreter_python": "/usr/bin/python3"
+        },
+        "changed": false,
+        "ping": "pong"
+    }
+
+    root@721d909272b8:/# ansible -i /test/hosts -m ping target2
+    The authenticity of host '192.9.200.244 (192.9.200.244)' can't be established.
+    ED25519 key fingerprint is SHA256:v/PGtNagh7/IkR5na8WOx7ern+NWdWZYeQoo+gGbwxk.
+    This host key is known by the following other names/addresses:
+        ~/.ssh/known_hosts:1: [hashed name]
+    Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+    target2 | SUCCESS => {
+        "ansible_facts": {
+            "discovered_interpreter_python": "/usr/bin/python3"
+        },
+        "changed": false,
+        "ping": "pong"
+    }
+    ```
+
+4. Start ssh server in ansible container
+
+    Run `service ssh restart`
+
+    ```
+    root@baacda756f60:/# service ssh restart
+    Restarting OpenBSD Secure Shell server: sshd.
+    ```
+
+## Step 3. Test SSH from jenkins container
+
+1. Initiate ssh session from jenkins
+
+    Run `ssh admin@ansible`
+
+    ```
+    root@4831a0a156d7:/# ssh admin@ansible
+    The authenticity of host 'ansible (192.168.32.4)' can't be established.
+    ECDSA key fingerprint is SHA256:L0A+VfwdD2NDMxuLbrU3D2Vf9eKYCNS0ns7c792Z2lg.
+    Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+    Warning: Permanently added 'ansible,192.168.32.4' (ECDSA) to the list of known hosts.
+    admin@ansible's password: 
+    Linux 721d909272b8 5.15.49-linuxkit-pr #1 SMP Thu May 25 07:17:40 UTC 2023 x86_64
+
+    The programs included with the Debian GNU/Linux system are free software;
+    the exact distribution terms for each program are described in the
+    individual files in /usr/share/doc/*/copyright.
+
+    Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+    permitted by applicable law.
+    ```
+
+2. Establish fingerprint by running any ansible-playbook
+
+    ```
+    admin@721d909272b8:~$ ansible-playbook -i /test/hosts /test/hello-world.yml
+
+    PLAY [Echo] ********************************************************************
+
+    TASK [Gathering Facts] *********************************************************
+    The authenticity of host '192.9.200.244 (192.9.200.244)' can't be established.
+    ED25519 key fingerprint is SHA256:v/PGtNagh7/IkR5na8WOx7ern+NWdWZYeQoo+gGbwxk.
+    This host key is known by the following other names/addresses:
+        ~/.ssh/known_hosts:1: [hashed name]
+    Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+
+    ok: [target1]
+    ok: [target2]
+
+    TASK [Print debug message] *****************************************************
+    ok: [target1] => {
+        "msg": "Hello, world!"
+    }
+    ok: [target2] => {
+        "msg": "Hello, world!"
+    }
+
+    PLAY RECAP *********************************************************************
+    target1                    : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+    target2                    : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+    ```
+
+3. Exit the ssh session
+
+    ```
+    admin@721d909272b8:~$ exit
+    logout
+    Connection to ansible closed.
+    ```
+
+4. Initiate SS session w/ sshpass
+
+    We will be testing jenkins job w/ following command.
+
+    ```
+    root@4831a0a156d7:/# sshpass -p "changeme" ssh "admin@ansible" ansible-playbook -i /test/hosts /test/hello-world.yml
+
+    PLAY [Echo] ********************************************************************
+
+    TASK [Gathering Facts] *********************************************************
+    ok: [target1]
+    ok: [target2]
+
+    TASK [Print debug message] *****************************************************
+    ok: [target1] => {
+        "msg": "Hello, world!"
+    }
+    ok: [target2] => {
+        "msg": "Hello, world!"
+    }
+
+    PLAY RECAP *********************************************************************
+    target1                    : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+    target2                    : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+    ```
+
+
+## Step 4. Test jenkins pipeline
+
+> Follow instructions in ./test folder to create tasks that involve running jobs in ansible.
+
+---
+
+# Troubleshooting
 
 ## Check connectivity between jenkins and ansible containers
 
