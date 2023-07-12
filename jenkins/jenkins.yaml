@@ -1,0 +1,10 @@
+jenkins:
+  unclassified:
+    location:
+      adminAddress: 'gthange@yahoo.com'
+
+email-ext:
+  recipientProviders:
+    - configuredRecipientProvider:
+        recipients:
+          recipientList: 'gthange@yahoo.com'

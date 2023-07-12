@@ -3,8 +3,8 @@
 # Define plugins and versions
 declare -A plugins=(
   ["email-ext"]="2.83"
-  # ["slack"]="2.46"
-  # Add more plugins and versions as needed
+  ["configuration-as-code"]="1647.ve39ca_b_829b_42"
+  ["config-file-provider"]="951.v0461b_87b_721b_"
 )
 
 # Install plugins
