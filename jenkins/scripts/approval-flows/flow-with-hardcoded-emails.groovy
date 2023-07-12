@@ -1,3 +1,4 @@
+// Approval/rejection flow by inspecting build logs
 pipeline {
     agent any
 
